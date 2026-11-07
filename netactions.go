@@ -53,36 +53,18 @@ func resolveHost(host string) ([]net.IP, error) {
 }
 
 func wichErr(ctx context.Context, err error) State {
-	if ctx.Err() != nil {
+	var netErr net.Error
+	switch {
+	case ctx.Err() != nil:
 		return StateCanceled
-	}
-	var opErr *net.OpError
-	if errors.As(err, &opErr) {
-		
-		var dnsErr *net.DNSError
-		if errors.As(opErr.Err, &dnsErr) {
-			return StateDNSFailed
-		}
-
-		var syscallErr *os.SyscallError
-		if errors.As(opErr.Err, &syscallErr) {
-			switch syscallErr.Err {
-			case syscall.ECONNREFUSED:
-				return StateClosed
-
-			case syscall.ETIMEDOUT:
-				return StateTimeout
-
-			case syscall.ENETUNREACH:
-				return StateUnreachable
-
-			case syscall.EHOSTUNREACH:
-				return StateUnreachable
-
-			case syscall.EACCES, syscall.EPERM:
-				return StatePermissionDenied
-			}
-		}
+	case errors.As(err, &netErr) && netErr.Timeout():
+		return StateTimeout
+	case errors.Is(err, syscall.ECONNREFUSED):
+		return StateClosed
+	case errors.Is(err, syscall.EHOSTUNREACH), errors.Is(err, syscall.ENETUNREACH):
+		return StateUnreachable
+	case errors.Is(err, syscall.EACCES), errors.Is(err, syscall.EPERM):
+		return StatePermissionDenied
 	}
 	return StateError
 }
