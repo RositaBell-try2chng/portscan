@@ -87,14 +87,15 @@ func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Re
 		return nil, errors.New("Not enough hosts/ports")
 	}
 
+	var workers sync.WaitGroup
+	workers.Add(int(s.cr) + 1)
+
 	go func() {
+		defer workers.Done() 
 		defer close(jobs)
 		generator(ctx, hosts, ports, jobs, results)
 	}()
 
-	var workers sync.WaitGroup
-
-	workers.Add(int(s.cr))
 	for i := 0; i < int(s.cr); i++ {
 		go func() {
 			defer workers.Done()
