@@ -55,10 +55,23 @@ func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
 	}, nil
 }
 
+func removeEmptyStrings(items []string) []string {
+	res := make([]string, 0, len(items))
+	for _, item := range items {
+		if item != "" {
+			res := append(result, item)
+		}
+	}
+	return res
+}
+
 func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Result, error) {
 	jobs := make(chan Job, s.bf)
 	results := make(chan Result, s.bf)
 
+	//clean empty hosts and ports
+	hosts = removeEmptyStrings(hosts)
+	
 	if len(hosts) == 0 || len(ports) == 0 {
 		return nil, errors.New("Not enough hosts/ports")
 	}
