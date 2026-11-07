@@ -58,27 +58,6 @@ func NewScanner(cr uint16, timeout time.Duration) (*Scanner, error) {
 	}, nil
 }
 
-func (s *Scanner) SetConcurrency(cr uint16) error {
-	if cr < 1 {
-		return errors.New("concurrency less than 1")
-	}
-	s.cr = cr
-	s.bf = cr*2
-	return nil
-}
-
-func (s *Scanner) SetTimeout(timeout time.Duration) error {
-	if timeout <= 0 {
-		return errors.New("timeout less than 0")
-	}
-	s.tm = timeout
-	return nil
-}
-
-func (s *Scanner) GetSettings() (uint16, time.Duration) {
-	return s.cr, s.tm
-}
-
 func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Result, error) {
 	jobs := make(chan Job, s.bf)
 	results := make(chan Result, s.bf)
