@@ -13,9 +13,19 @@ func generator(
 	) {
 		exists := make(map[string]struct{})
 		for _, host := range hosts {
+			if ctx.Err() != nil { return }
 			if len(host) == 0 { continue }
-			ips, err := resolveHost(host)
+			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 			if err != nil {
+
+				if ctx.Err() != nil { return }
+
+				state := StateError
+				var dnsErr *net.DNSError
+				if errors.As(err, &dnsErr) {
+					state = StateDNSFailed
+				}
+
 				select {
 				case <-ctx.Done():
 					return
@@ -25,7 +35,7 @@ func generator(
 						IP: nil,
 						Port: 0,
 					},
-					State: StateError,
+					State: state,
 					Duration: 0,
 					Err: err,
 					}:
