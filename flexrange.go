@@ -6,13 +6,13 @@ import (
 
 func Range(st, en uint16) []uint16 {
 	//invalid ranges
-	if st > en || st < 1 || en > 65535 {
+	if st > en || st < 1 {
 		fmt.Printf("ERROR: Range(%d, %d) is invalid.\n", st, en)
 		return nil
 	}
-	ports := make([]uint16, 0, en - st + 1)
-	for i := st; i <= en; i++ {
-		ports = append(ports, i)
+	ports := make([]uint16, 0, int(en) - int(st) + 1)
+	for i := int(st); i <= int(en); i++ {
+		ports = append(ports, uint16(i))
 	}
 	return ports
 }
@@ -23,7 +23,7 @@ func FlexRange(args ...any) []uint16 {
 	}
 	portsMap := make(map[uint16]struct{})
 	isValid := func(port uint16) bool {
-		return port >= 1 && port <= 65535
+		return port >= 1
 	}
 	
 	for i, arg := range args {
