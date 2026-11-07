@@ -44,11 +44,11 @@ func generator(
 			}
 
 			for _, ip := range ips {
-				ipStr := ip.String()
-				if _, ok := exists[ipStr]; ok {
+				keyDed := host + ip.String()
+				if _, ok := exists[keyDed]; ok {
 					continue
 				}
-				exists[ipStr] = struct{}{}
+				exists[keyDed] = struct{}{}
 				for _, port := range ports {
 					select {
 					case <-ctx.Done():
