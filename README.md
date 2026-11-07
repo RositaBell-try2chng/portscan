@@ -2,7 +2,7 @@
 Тестовое на GO
 
 1. Как использовать пакет
-    Создаете сканер с помощью NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error)
+    Создаете сканер с помощью конструктора NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error)
     Проверяете на ошибку.
     Создаете объект context.Context
     Запускаете (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Result, error)
@@ -53,7 +53,7 @@
     }
 
 2. Как устроен публичный API
-    Создание сканера через функцию NewScanner(uint16, time.Duration) (*Scanner, error)
+    Создание сканера только через функцию NewScanner(uint16, time.Duration) (*Scanner, error)
     аргументы: 1 - количество одновременных подключений(>0), 2 - таймаут на подключение(>0)
     возвращает сканнер или ошибку в случае некорректных аргументов.
 

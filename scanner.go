@@ -41,14 +41,11 @@ type Scanner struct {
 	pr string
 }
 
-func NewScanner(cr uint16, timeout time.Duration) (*Scanner, error) {
-	if cr < 1 {
-		return nil, errors.New("concurrency less than 1")
+func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
+	if s.concurrency < 1 || s.timeout <= 0 {
+		return nil, ErrNotInitialized
 	}
 
-	if timeout <= 0 {
-		return nil, errors.New("timeout less than 0")
-	}
 
 	return &Scanner {
 		cr: cr,
