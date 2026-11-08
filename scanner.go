@@ -21,6 +21,14 @@ const (
 	StatePermissionDenied State = "permission denied"
 )
 
+const (
+	ErrNoHosts      	= errors.New("portscan: no valid hosts")
+	ErrNoPorts      	= errors.New("portscan: no ports")
+	ErrInvalidPort  	= errors.New("portscan: invalid port")
+	ErrInvalidRange 	= errors.New("portscan: invalid port range")
+	ErrNotInitialized	= errors.New("portscan: scanner not initialized")
+)
+
 type Job struct {
 	Host string
 	IP   net.IP
@@ -68,14 +76,19 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-c
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
 
-	if len(hosts) == 0 || len(ports) == 0 {
-		return nil, errors.New("Not enough hosts/ports")
+	if len(hosts) == 0 {
+		return nil, ErrNoHosts
 	}
+	
+	if len(ports) == 0 {
+		return nil, ErrNoPorts
+	}
+	
 	ports = slices.Clone(ports)
 	slices.Sort(ports)
 	ports = slices.Compact(ports)
 	if ports[0] == 0 {
-		return nil, errors.New("Invalid port 0")
+		return nil, ErrInvalidPort
 	}
 
 	jobs := make(chan Job, s.bf)
