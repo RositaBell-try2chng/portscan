@@ -75,6 +75,12 @@ func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Re
 	if len(hosts) == 0 || len(ports) == 0 {
 		return nil, errors.New("Not enough hosts/ports")
 	}
+	ports = slices.Clone(ports)
+	slices.Sort(ports)
+	ports = slices.Compact(ports)
+	if ports[0] == 0 {
+		return nil, errors.New("Invalid port 0")
+	}
 
 	var workers sync.WaitGroup
 	workers.Add(int(s.cr) + 1)
