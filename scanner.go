@@ -74,6 +74,9 @@ func removeEmptyStrings(items []string) []string {
 }
 
 func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
+	if s == nil || s.cr == 0 {
+		return nil, ErrNotInitialized
+	}
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
 
