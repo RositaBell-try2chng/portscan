@@ -1,5 +1,4 @@
 Пакет для сканирования портов
-Тестовое на GO
 
 1. Как использовать пакет
     Создаете сканер с помощью конструктора NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error)
