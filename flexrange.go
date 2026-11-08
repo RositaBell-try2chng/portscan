@@ -4,11 +4,10 @@ import (
 	"fmt"
 )
 
-func Range(st, en uint16) []uint16 {
+func Range(st, en uint16) ([]uint16, error) {
 	//invalid ranges
 	if st > en || st < 1 {
-		fmt.Printf("ERROR: Range(%d, %d) is invalid.\n", st, en)
-		return nil
+		return nil, ErrInvalidRange
 	}
 	ports := make([]uint16, 0, int(en)-int(st)+1)
 	for i := int(st); i <= int(en); i++ {
@@ -17,9 +16,9 @@ func Range(st, en uint16) []uint16 {
 	return ports
 }
 
-func FlexRange(args ...any) []uint16 {
+func FlexRange(args ...any) ([]uint16, error) {
 	if len(args) == 0 {
-		return nil
+		return nil, ErrNoPorts
 	}
 	portsMap := make(map[uint16]struct{})
 	isValid := func(port uint16) bool {
@@ -32,45 +31,38 @@ func FlexRange(args ...any) []uint16 {
 			if isValid(val) {
 				portsMap[val] = struct{}{}
 			} else {
-				fmt.Printf("ERROR: Invalid port %d at the argument %d\n", val, i)
-				return nil
+				return nil, ErrInvalidPort
 			}
 		case []uint16:
 			if len(val) == 0 {
-				fmt.Printf("ERROR: Invalid argument %d. (empty or nil)\n", i)
-				return nil
+				return nil, ErrInvalidRange
 			}
 			for j, port := range val {
 				if isValid(port) {
 					portsMap[port] = struct{}{}
 				} else {
-					fmt.Printf("ERROR: Invalid port %d at the range %d, argument %d\n", port, i, j)
-					return nil
+					return nil, ErrInvalidPort
 				}
 			}
 		case int:
 			if val >= 1 && val <= 65535 {
 				portsMap[uint16(val)] = struct{}{}
 			} else {
-				fmt.Printf("ERROR: Invalid port %d at the argument %d\n", val, i)
-				return nil
+				return nil, ErrInvalidPort
 			}
 		case []int:
 			if len(val) == 0 {
-				fmt.Printf("ERROR: Invalid argument %d. (empty or nil)\n", i)
-				return nil
+				return nil, ErrInvalidRange
 			}
 			for j, port := range val {
 				if port >= 1 && port <= 65535 {
 					portsMap[uint16(port)] = struct{}{}
 				} else {
-					fmt.Printf("ERROR: Invalid port %d at the range %d, argument %d\n", port, i, j)
-					return nil
+					return nil, ErrInvalidPort
 				}
 			}
 		default:
-			fmt.Printf("ERROR: Invalid argument %d. type: %T.\n", i, arg)
-			return nil
+			return nil, ErrInvalidPort
 		}
 	}
 	ports := make([]uint16, 0, len(portsMap))

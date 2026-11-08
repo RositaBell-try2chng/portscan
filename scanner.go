@@ -73,9 +73,13 @@ func removeEmptyStrings(items []string) []string {
 	return res
 }
 
-func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
+func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16, err error) (<-chan Result, error) {
 	if s == nil || s.cr == 0 {
 		return nil, ErrNotInitialized
+	}
+
+	if err != nil {
+		return nil, err
 	}
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
@@ -119,7 +123,5 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-c
 		close(results)
 	}()
 
-	// collected := collector(ctx, results)
-
-	return results, ctx.Err()
+	return results, ctx.Err
 }
