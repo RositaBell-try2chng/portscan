@@ -6,6 +6,11 @@ import (
 	"errors"
 )
 
+type Key struct {
+	host string
+	ip string
+}
+
 func generator(
 	ctx context.Context,
 	hosts []string,
@@ -13,7 +18,7 @@ func generator(
 	jobs chan<- Job,
 	results chan<- Result,
 ) {
-	exists := make(map[string]struct{})
+	exists := make(map[Key]struct{})
 	for _, host := range hosts {
 		if ctx.Err() != nil {
 			return
@@ -52,7 +57,10 @@ func generator(
 		}
 
 		for _, ip := range ips {
-			keyDed := host + ip.String()
+			keyDed := Key{
+				host: host, 
+				ip: ip,
+			}
 			if _, ok := exists[keyDed]; ok {
 				continue
 			}
