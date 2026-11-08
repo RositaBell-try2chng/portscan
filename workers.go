@@ -2,6 +2,8 @@ package portscan
 
 import (
 	"context"
+	"net"
+	"errors"
 )
 
 func generator(
