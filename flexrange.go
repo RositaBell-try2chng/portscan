@@ -1,7 +1,6 @@
 package portscan
 
 import (
-	"fmt"
 )
 
 func Range(st, en uint16) ([]uint16, error) {

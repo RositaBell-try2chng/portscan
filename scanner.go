@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 	"slices"
+	"strings"
 )
 
 type State string
@@ -66,6 +67,7 @@ func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
 func removeEmptyStrings(items []string) []string {
 	res := make([]string, 0, len(items))
 	for _, item := range items {
+		item = strings.TrimSpace(item)
 		if item != "" {
 			res = append(res, item)
 		}
@@ -99,6 +101,10 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16, err 
 		return nil, ErrInvalidPort
 	}
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	jobs := make(chan Job, s.bf)
 	results := make(chan Result, s.bf)
 
@@ -123,5 +129,5 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16, err 
 		close(results)
 	}()
 
-	return results, ctx.Err()
+	return results, nil
 }
