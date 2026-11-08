@@ -65,7 +65,7 @@ func removeEmptyStrings(items []string) []string {
 	return res
 }
 
-func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Result, error) {
+func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
 	jobs := make(chan Job, s.bf)
 	results := make(chan Result, s.bf)
 
@@ -103,7 +103,7 @@ func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) ([]Re
 		close(results)
 	}()
 
-	collected := collector(ctx, results)
+	// collected := collector(ctx, results)
 
-	return collected, ctx.Err()
+	return results, ctx.Err()
 }

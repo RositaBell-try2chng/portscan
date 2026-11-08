@@ -86,20 +86,20 @@ func (s *Scanner)worker(
 	}
 }
 
-func collector(
-	ctx context.Context,
-	results <-chan Result,
-) []Result {
-	collected := make([]Result, 0)
-	for {
-		select {
-		case <- ctx.Done():
-			return collected
-		case res, ok := <-results:
-			if !ok {
-				return collected
-			}
-			collected = append(collected, res)
-		}
-	}
-}
+// func collector(
+// 	ctx context.Context,
+// 	results <-chan Result,
+// ) []Result {
+// 	collected := make([]Result, 0)
+// 	for {
+// 		select {
+// 		case <- ctx.Done():
+// 			return collected
+// 		case res, ok := <-results:
+// 			if !ok {
+// 				return collected
+// 			}
+// 			collected = append(collected, res)
+// 		}
+// 	}
+// }
