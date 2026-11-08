@@ -61,7 +61,7 @@ func FlexRange(args ...any) []uint16 {
 				return nil
 			}
 			for j, port := range val {
-				if val >= 1 && val <= 65535 {
+				if port >= 1 && port <= 65535 {
 					portsMap[uint16(port)] = struct{}{}
 				} else {
 					fmt.Printf("ERROR: Invalid port %d at the range %d, argument %d\n", port, i, j)
