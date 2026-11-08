@@ -4,7 +4,7 @@
     Создаете сканер с помощью конструктора NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error)
     Проверяете на ошибку.
     Создаете объект context.Context
-    Запускаете (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error)
+    Запускаете (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16, err error) (<-chan Result, error) (так как предполашается использование Range и FlexRange, которые возвращают []uint, error, последним аргументом функция Scan принимает error. В случае передачи портов не черезе Tange/FlexRange необходимо передать nil последним аргументом.)
     Хосты - слайс строк.
     Порты можно задать вручную или использовать Range(принимает 2 uint16) для простого диапозона и FlexRange(принимает любой набор в любой последовательности из uint16 и []uint16).
 
@@ -46,7 +46,7 @@
             fmt.Println(err)
         }
 
-        for _, res := range results {
+        for res := range results {
             fmt.Println(res)
         }
     }
@@ -58,18 +58,18 @@
 
     Для запуска сканирования используем 
     (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error)
-    Возвращает то что смог/успел обработать сканер в слайсе с результатами и/или ошибку если нечего проверять или поймали отмену через контекст
+    Возвращает канал с результатами и ошибку(если все ок, то nil).
 
     type Result struct {
         Host string
-        IP net.IP
+        IP net.IPAddr
         Port uint16
         State State
         Duration time.Duration
         Err error
     }
 
-    Задавать порты можно через функции Range(st, en uint16) []uint16 и FlexRange(args ...any) []uint16. В случае некорректного ввода возвращают nil или пустой слайс.
+    Задавать порты можно через функции Range(st, en uint16) []uint16 и FlexRange(args ...any) ([]uint16, error). В случае некорректного ввода возвращают nil, error.
 
     Возможные результаты проверки в Result.State
     "open" - успешно
