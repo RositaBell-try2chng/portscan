@@ -1,37 +1,37 @@
 package portscan
 
 import (
-	"time"
-	"errors"
-	"sync"
-	"net"
 	"context"
+	"errors"
+	"net"
+	"sync"
+	"time"
 )
 
 type State string
 
 const (
-	StateOpen				State = "open"
-	StateClosed				State = "closed"
-	StateTimeout			State = "timeout"
-	StateUnreachable		State = "unreachable"
-	StateDNSFailed			State = "dns failed"
-	StateCanceled			State = "canceled"
-	StateError				State = "error"
-	StatePermissionDenied	State = "permission denied"
+	StateOpen             State = "open"
+	StateClosed           State = "closed"
+	StateTimeout          State = "timeout"
+	StateUnreachable      State = "unreachable"
+	StateDNSFailed        State = "dns failed"
+	StateCanceled         State = "canceled"
+	StateError            State = "error"
+	StatePermissionDenied State = "permission denied"
 )
 
 type Job struct {
 	Host string
-	IP net.IP
+	IP   net.IP
 	Port uint16
 }
 
 type Result struct {
 	Job
-	State State
+	State    State
 	Duration time.Duration
-	Err error
+	Err      error
 }
 
 type Scanner struct {
@@ -46,11 +46,10 @@ func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
 		return nil, ErrNotInitialized
 	}
 
-
-	return &Scanner {
+	return &Scanner{
 		cr: cr,
 		tm: timeout,
-		bf: uint32(cr)*2,
+		bf: uint32(cr) * 2,
 		pr: "tcp",
 	}, nil
 }
@@ -65,13 +64,13 @@ func removeEmptyStrings(items []string) []string {
 	return res
 }
 
-func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
+func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
 	jobs := make(chan Job, s.bf)
 	results := make(chan Result, s.bf)
 
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
-	
+
 	if len(hosts) == 0 || len(ports) == 0 {
 		return nil, errors.New("Not enough hosts/ports")
 	}
@@ -86,7 +85,7 @@ func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-ch
 	workers.Add(int(s.cr) + 1)
 
 	go func() {
-		defer workers.Done() 
+		defer workers.Done()
 		defer close(jobs)
 		generator(ctx, hosts, ports, jobs, results)
 	}()
@@ -98,7 +97,7 @@ func (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-ch
 		}()
 	}
 
-	go func(){
+	go func() {
 		workers.Wait()
 		close(results)
 	}()

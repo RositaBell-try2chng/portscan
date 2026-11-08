@@ -10,7 +10,7 @@ func Range(st, en uint16) []uint16 {
 		fmt.Printf("ERROR: Range(%d, %d) is invalid.\n", st, en)
 		return nil
 	}
-	ports := make([]uint16, 0, int(en) - int(st) + 1)
+	ports := make([]uint16, 0, int(en)-int(st)+1)
 	for i := int(st); i <= int(en); i++ {
 		ports = append(ports, uint16(i))
 	}
@@ -25,7 +25,7 @@ func FlexRange(args ...any) []uint16 {
 	isValid := func(port uint16) bool {
 		return port >= 1
 	}
-	
+
 	for i, arg := range args {
 		switch val := arg.(type) {
 		case uint16:
@@ -38,7 +38,7 @@ func FlexRange(args ...any) []uint16 {
 		case []uint16:
 			if len(val) == 0 {
 				fmt.Printf("ERROR: Invalid argument %d. (empty or nil)\n", i)
-				return nil	
+				return nil
 			}
 			for j, port := range val {
 				if isValid(port) {
@@ -58,7 +58,7 @@ func FlexRange(args ...any) []uint16 {
 		case []int:
 			if len(val) == 0 {
 				fmt.Printf("ERROR: Invalid argument %d. (empty or nil)\n", i)
-				return nil	
+				return nil
 			}
 			for j, port := range val {
 				if val >= 1 && val <= 65535 {

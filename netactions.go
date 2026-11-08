@@ -1,16 +1,16 @@
 package portscan
 
 import (
-	"net"
-	"time"
+	"context"
 	"errors"
-	"syscall"
+	"net"
 	"os"
 	"strconv"
-	"context"
+	"syscall"
+	"time"
 )
 
-func (s *Scanner)doIt(ctx context.Context, job Job) Result {
+func (s *Scanner) doIt(ctx context.Context, job Job) Result {
 	address := net.JoinHostPort(job.IP.String(), strconv.Itoa(int(job.Port)))
 
 	dialer := net.Dialer{
@@ -19,11 +19,11 @@ func (s *Scanner)doIt(ctx context.Context, job Job) Result {
 	start := time.Now()
 	conn, err := dialer.DialContext(ctx, s.pr, address)
 	latency := time.Since(start)
-	
+
 	result := Result{
 		Job: Job{
 			Host: job.Host,
-			IP: job.IP,
+			IP:   job.IP,
 			Port: job.Port,
 		},
 		Duration: latency,

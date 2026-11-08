@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"net"
+	"sync"
 	"testing"
 	"time"
-	"sync"
 )
 
 func createTestScanner(t *testing.T) *Scanner {
@@ -387,7 +387,7 @@ func TestScanInvalidHost(t *testing.T) {
 // // Проверка неразрешимого DNS-имени.
 // func TestScanUnresolvableHost(t *testing.T) {
 // 	scanner := createTestScanner(t)
-	
+
 // 	ctx, cancel := context.WithTimeout(
 // 		context.Background(),
 // 		30*time.Second,
@@ -531,6 +531,3 @@ func TestScanIPv6(t *testing.T) {
 		t.Errorf("expected open, got %v", results[0].State)
 	}
 }
-
-
-
