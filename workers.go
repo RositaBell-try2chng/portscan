@@ -45,7 +45,7 @@ func generator(
 			case results <- Result{
 				Job: Job{
 					Host: host,
-					IP:   nil,
+					IP:   net.IPAddr{},
 					Port: 0,
 				},
 				State:    state,
@@ -59,7 +59,7 @@ func generator(
 		for _, ip := range ips {
 			keyDed := Key{
 				host: host, 
-				ip: ip,
+				ip: ip.String(),
 			}
 			if _, ok := exists[keyDed]; ok {
 				continue

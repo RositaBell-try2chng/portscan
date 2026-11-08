@@ -103,6 +103,7 @@ func TestScanOpenPort(t *testing.T) {
 		ctx,
 		[]string{"127.0.0.1"},
 		[]uint16{port},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -154,6 +155,7 @@ func TestScanClosedPort(t *testing.T) {
 		ctx,
 		[]string{"127.0.0.1"},
 		[]uint16{port},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -187,6 +189,7 @@ func TestScanMultiplePorts(t *testing.T) {
 		ctx,
 		[]string{"127.0.0.1"},
 		[]uint16{port1, port2},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -222,6 +225,7 @@ func TestScanMultipleHosts(t *testing.T) {
 		ctx,
 		[]string{"127.0.0.1", "127.0.0.2"},
 		[]uint16{port1, port2},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -252,6 +256,7 @@ func TestScanDuplicateIP(t *testing.T) {
 			"127.0.0.1",
 		},
 		[]uint16{port},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -287,6 +292,7 @@ func TestScanHostnameMultipleIPs(t *testing.T) {
 		ctx,
 		[]string{"localhost"},
 		[]uint16{80},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)
@@ -331,6 +337,7 @@ func TestScanEmptyHosts(t *testing.T) {
 		ctx,
 		nil,
 		[]uint16{80},
+		nil,
 	)
 
 	if err == nil {
@@ -351,6 +358,7 @@ func TestScanEmptyPorts(t *testing.T) {
 	_, err := scanner.Scan(
 		ctx,
 		[]string{"127.0.0.1"},
+		nil,
 		nil,
 	)
 
@@ -373,6 +381,7 @@ func TestScanInvalidHost(t *testing.T) {
 		ctx,
 		[]string{"invalid host !!!"},
 		[]uint16{80},
+		nil,
 	)
 
 	if len(res) < 1 {
@@ -383,27 +392,6 @@ func TestScanInvalidHost(t *testing.T) {
 		t.Fatal("expected error for invalid host")
 	}
 }
-
-// // Проверка неразрешимого DNS-имени.
-// func TestScanUnresolvableHost(t *testing.T) {
-// 	scanner := createTestScanner(t)
-
-// 	ctx, cancel := context.WithTimeout(
-// 		context.Background(),
-// 		30*time.Second,
-// 	)
-// 	defer cancel()
-
-// 	res, _ := scanner.Scan(
-// 		ctx,
-// 		[]string{"this-host-does-not-exist.invalid"},
-// 		[]uint16{80},
-// 	)
-
-// 	if res[0].State != "error" {
-// 		t.Fatal("expected error for unresolvable hostname")
-// 	}
-// }
 
 // Проверка отменённого контекста.
 func TestScanCanceledContext(t *testing.T) {
@@ -419,6 +407,7 @@ func TestScanCanceledContext(t *testing.T) {
 		ctx,
 		[]string{"127.0.0.1"},
 		[]uint16{80},
+		nil,
 	)
 
 	if err == nil {
@@ -448,6 +437,7 @@ func TestScannerReuse(t *testing.T) {
 			ctx,
 			[]string{"127.0.0.1"},
 			[]uint16{port},
+			nil,
 		)
 		if err != nil {
 			t.Fatalf("Scan #%d error: %v", i, err)
@@ -486,6 +476,7 @@ func TestConcurrentScan(t *testing.T) {
 				ctx,
 				[]string{"127.0.0.1"},
 				[]uint16{port},
+				nil,
 			)
 			if err != nil {
 				t.Errorf("Scan() error: %v", err)
@@ -518,6 +509,7 @@ func TestScanIPv6(t *testing.T) {
 		ctx,
 		[]string{"::1"},
 		[]uint16{port},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Scan() error: %v", err)

@@ -13,7 +13,7 @@ func Range(st, en uint16) ([]uint16, error) {
 	for i := int(st); i <= int(en); i++ {
 		ports = append(ports, uint16(i))
 	}
-	return ports
+	return ports, nil
 }
 
 func FlexRange(args ...any) ([]uint16, error) {
@@ -25,7 +25,7 @@ func FlexRange(args ...any) ([]uint16, error) {
 		return port >= 1
 	}
 
-	for i, arg := range args {
+	for _, arg := range args {
 		switch val := arg.(type) {
 		case uint16:
 			if isValid(val) {
@@ -37,7 +37,7 @@ func FlexRange(args ...any) ([]uint16, error) {
 			if len(val) == 0 {
 				return nil, ErrInvalidRange
 			}
-			for j, port := range val {
+			for _, port := range val {
 				if isValid(port) {
 					portsMap[port] = struct{}{}
 				} else {
@@ -54,7 +54,7 @@ func FlexRange(args ...any) ([]uint16, error) {
 			if len(val) == 0 {
 				return nil, ErrInvalidRange
 			}
-			for j, port := range val {
+			for _, port := range val {
 				if port >= 1 && port <= 65535 {
 					portsMap[uint16(port)] = struct{}{}
 				} else {
@@ -69,5 +69,5 @@ func FlexRange(args ...any) ([]uint16, error) {
 	for port := range portsMap {
 		ports = append(ports, port)
 	}
-	return ports
+	return ports, nil
 }

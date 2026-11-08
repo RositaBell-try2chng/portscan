@@ -22,7 +22,7 @@ const (
 	StatePermissionDenied State = "permission denied"
 )
 
-const (
+var (
 	ErrNoHosts      	= errors.New("portscan: no valid hosts")
 	ErrNoPorts      	= errors.New("portscan: no ports")
 	ErrInvalidPort  	= errors.New("portscan: invalid port")
@@ -56,9 +56,9 @@ func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
 	}
 
 	return &Scanner{
-		cr: cr,
+		cr: concurrency,
 		tm: timeout,
-		bf: uint32(cr) * 2,
+		bf: uint32(concurrency) * 2,
 		pr: "tcp",
 	}, nil
 }
@@ -67,7 +67,7 @@ func removeEmptyStrings(items []string) []string {
 	res := make([]string, 0, len(items))
 	for _, item := range items {
 		if item != "" {
-			res := append(res, item)
+			res = append(res, item)
 		}
 	}
 	return res
@@ -123,5 +123,5 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16, err 
 		close(results)
 	}()
 
-	return results, ctx.Err
+	return results, ctx.Err()
 }
