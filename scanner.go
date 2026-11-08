@@ -50,7 +50,7 @@ type Scanner struct {
 }
 
 func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
-	if s.concurrency < 1 || s.timeout <= 0 {
+	if concurrency < 1 || timeout <= 0 {
 		return nil, ErrNotInitialized
 	}
 
@@ -66,7 +66,7 @@ func removeEmptyStrings(items []string) []string {
 	res := make([]string, 0, len(items))
 	for _, item := range items {
 		if item != "" {
-			res := append(result, item)
+			res := append(res, item)
 		}
 	}
 	return res
