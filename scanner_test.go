@@ -375,6 +375,10 @@ func TestScanInvalidHost(t *testing.T) {
 		[]uint16{80},
 	)
 
+	if len(res) < 1 {
+		t.Fatal("not enogh results for TestScanInvalidHost")
+	}
+
 	if res[0].State != "error" {
 		t.Fatal("expected error for invalid host")
 	}
