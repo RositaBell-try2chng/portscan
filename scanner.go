@@ -65,9 +65,6 @@ func removeEmptyStrings(items []string) []string {
 }
 
 func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
-	jobs := make(chan Job, s.bf)
-	results := make(chan Result, s.bf)
-
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
 
@@ -80,6 +77,9 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-c
 	if ports[0] == 0 {
 		return nil, errors.New("Invalid port 0")
 	}
+
+	jobs := make(chan Job, s.bf)
+	results := make(chan Result, s.bf)
 
 	var workers sync.WaitGroup
 	workers.Add(int(s.cr) + 1)
