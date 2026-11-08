@@ -37,7 +37,7 @@ type Result struct {
 type Scanner struct {
 	cr uint16
 	tm time.Duration
-	bf uint16
+	bf uint32
 	pr string
 }
 
@@ -50,7 +50,7 @@ func NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error) {
 	return &Scanner {
 		cr: cr,
 		tm: timeout,
-		bf: cr*2,
+		bf: uint32(cr)*2,
 		pr: "tcp",
 	}, nil
 }
