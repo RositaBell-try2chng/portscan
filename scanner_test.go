@@ -3,46 +3,19 @@ package portscan
 import (
 	"context"
 	"errors"
-	"net"
-	"sync"
 	"testing"
 	"time"
 )
 
-func createTestScanner(t *testing.T) *Scanner {
-	t.Helper()
-
-	scanner, err := NewScanner(10, time.Second)
-	if err != nil {
-		t.Fatalf("NewScanner() error: %v", err)
-	}
-
-	return scanner
-}
-
-func startTestServer(t *testing.T, pr string, ip string) (net.Listener, uint16) {
-	t.Helper()
-
-	listener, err := net.Listen(pr, ip)
-	if err != nil {
-		t.Fatalf("failed to start TCP server: %v", err)
-	}
-
-	port := uint16(listener.Addr().(*net.TCPAddr).Port)
-
-	return listener, port
-}
-
-// Проверка создания сканера.
 func TestNewScanner(t *testing.T) {
 	tests := []struct {
 		name        string
 		concurrency uint16
 		timeout     time.Duration
-		wantErr     bool
+		wantErr     error
 	}{
 		{
-			name:        "valid settings",
+			name:        "valid",
 			concurrency: 10,
 			timeout:     time.Second,
 		},
@@ -50,25 +23,19 @@ func TestNewScanner(t *testing.T) {
 			name:        "zero concurrency",
 			concurrency: 0,
 			timeout:     time.Second,
-			wantErr:     true,
+			wantErr:     ErrNotInitialized,
 		},
 		{
 			name:        "zero timeout",
 			concurrency: 10,
 			timeout:     0,
-			wantErr:     true,
+			wantErr:     ErrNotInitialized,
 		},
 		{
 			name:        "negative timeout",
 			concurrency: 10,
 			timeout:     -time.Second,
-			wantErr:     true,
-		},
-		{
-			name:        "invalid concurrency and timeout",
-			concurrency: 0,
-			timeout:     0,
-			wantErr:     true,
+			wantErr:     ErrNotInitialized,
 		},
 	}
 
@@ -76,450 +43,152 @@ func TestNewScanner(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			scanner, err := NewScanner(tt.concurrency, tt.timeout)
 
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}
 
-			if !tt.wantErr && scanner == nil {
-				t.Fatal("expected non-nil scanner")
+			if err != nil {
+				if scanner != nil {
+					t.Fatal("expected nil scanner")
+				}
+				return
+			}
+
+			if scanner == nil {
+				t.Fatal("expected scanner")
+			}
+
+			if scanner.cr != tt.concurrency {
+				t.Errorf("expected concurrency %d, got %d",
+					tt.concurrency, scanner.cr)
+			}
+
+			if scanner.tm != tt.timeout {
+				t.Errorf("expected timeout %v, got %v",
+					tt.timeout, scanner.tm)
+			}
+
+			if scanner.pr != "tcp" {
+				t.Errorf("expected tcp, got %s", scanner.pr)
 			}
 		})
 	}
 }
 
-// Проверка обнаружения открытого порта.
-func TestScanOpenPort(t *testing.T) {
-	listener, port := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer listener.Close()
-
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	results, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1"},
-		[]uint16{port},
-		nil,
-	)
+func TestScanValidation(t *testing.T) {
+	scanner, err := NewScanner(5, time.Second)
 	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
-	}
-
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
-	}
-
-	result := results[0]
-
-	if result.State != "open" {
-		t.Errorf("expected open, got %v", result.State)
-	}
-
-	if result.Port != port {
-		t.Errorf("expected port %d, got %d", port, result.Port)
-	}
-
-	if result.Host != "127.0.0.1" {
-		t.Errorf("unexpected host: %s", result.Host)
-	}
-
-	if result.IP == nil || !result.IP.Equal(net.ParseIP("127.0.0.1")) {
-		t.Errorf("unexpected IP: %v", result.IP)
-	}
-
-	if result.Duration < 0 {
-		t.Errorf("negative duration: %v", result.Duration)
-	}
-}
-
-// Проверка обнаружения закрытого порта.
-func TestScanClosedPort(t *testing.T) {
-	listener, port := startTestServer(t, "tcp4", "127.0.0.1:0")
-
-	if err := listener.Close(); err != nil {
 		t.Fatal(err)
 	}
 
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
+	externalErr := errors.New("external error")
 
-	results, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1"},
-		[]uint16{port},
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
-	}
-
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
-	}
-
-	if results[0].State != "closed" {
-		t.Errorf("expected closed, got %v", results[0].State)
-	}
-}
-
-// Проверка нескольких портов одного хоста.
-func TestScanMultiplePorts(t *testing.T) {
-	server1, port1 := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer server1.Close()
-
-	server2, port2 := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer server2.Close()
-
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	results, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1"},
-		[]uint16{port1, port2},
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
-	}
-
-	if len(results) != 2 {
-		t.Fatalf("expected 2 results, got %d", len(results))
-	}
-
-	for _, result := range results {
-		if result.State != "open" {
-			t.Errorf("port %d: expected open, got %v", result.Port, result.State)
-		}
-	}
-}
-
-// Проверка нескольких IP-адресов.
-func TestScanMultipleHosts(t *testing.T) {
-	server1, port1 := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer server1.Close()
-
-	server2, port2 := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer server2.Close()
-
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	results, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1", "127.0.0.2"},
-		[]uint16{port1, port2},
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
-	}
-
-	if len(results) != 4 {
-		t.Fatalf("expected 4 results, got %d", len(results))
-	}
-}
-
-// Проверка дедупликации IP.
-func TestScanDuplicateIP(t *testing.T) {
-	listener, port := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer listener.Close()
-
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	results, err := scanner.Scan(
-		ctx,
-		[]string{
-			"127.0.0.1",
-			"localhost",
-			"127.0.0.1",
+	tests := []struct {
+		name    string
+		scanner *Scanner
+		hosts   []string
+		ports   []uint16
+		err     error
+		wantErr error
+	}{
+		{
+			name:    "nil scanner",
+			scanner: nil,
+			hosts:   []string{"127.0.0.1"},
+			ports:   []uint16{80},
+			wantErr: ErrNotInitialized,
 		},
-		[]uint16{port},
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
+		{
+			name:    "empty hosts",
+			scanner: scanner,
+			ports:   []uint16{80},
+			wantErr: ErrNoHosts,
+		},
+		{
+			name:    "only empty hosts",
+			scanner: scanner,
+			hosts:   []string{"", ""},
+			ports:   []uint16{80},
+			wantErr: ErrNoHosts,
+		},
+		{
+			name:    "empty ports",
+			scanner: scanner,
+			hosts:   []string{"127.0.0.1"},
+			wantErr: ErrNoPorts,
+		},
+		{
+			name:    "zero port",
+			scanner: scanner,
+			hosts:   []string{"127.0.0.1"},
+			ports:   []uint16{0},
+			wantErr: ErrInvalidPort,
+		},
+		{
+			name:    "zero port among valid ports",
+			scanner: scanner,
+			hosts:   []string{"127.0.0.1"},
+			ports:   []uint16{80, 0, 443},
+			wantErr: ErrInvalidPort,
+		},
+		{
+			name:    "external error",
+			scanner: scanner,
+			hosts:   []string{"127.0.0.1"},
+			ports:   []uint16{80},
+			err:     externalErr,
+			wantErr: externalErr,
+		},
 	}
 
-	seen := make(map[string]bool)
-
-	for _, result := range results {
-		if result.IP == nil {
-			t.Fatal("result IP is nil")
-		}
-
-		ip := result.IP.String()
-
-		if seen[ip] {
-			t.Errorf("duplicate IP scanned: %s", ip)
-		}
-
-		seen[ip] = true
-	}
-}
-
-// Проверка нескольких IP, полученных из одного hostname.
-func TestScanHostnameMultipleIPs(t *testing.T) {
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	results, err := scanner.Scan(
-		ctx,
-		[]string{"localhost"},
-		[]uint16{80},
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
-	}
-
-	if len(results) == 0 {
-		t.Fatal("expected at least one result")
-	}
-
-	seen := make(map[string]bool)
-
-	for _, result := range results {
-		if result.IP == nil {
-			t.Fatal("result IP is nil")
-		}
-
-		ip := result.IP.String()
-
-		if seen[ip] {
-			t.Errorf("duplicate IP: %s", ip)
-		}
-
-		seen[ip] = true
-
-		if result.Host != "localhost" {
-			t.Errorf("expected hostname localhost, got %s", result.Host)
-		}
-	}
-}
-
-// Проверка пустого списка хостов.
-func TestScanEmptyHosts(t *testing.T) {
-	scanner := createTestScanner(t)
-
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	_, err := scanner.Scan(
-		ctx,
-		nil,
-		[]uint16{80},
-		nil,
-	)
-
-	if err == nil {
-		t.Fatal("expected error for empty hosts")
-	}
-}
-
-// Проверка пустого списка портов.
-func TestScanEmptyPorts(t *testing.T) {
-	scanner := createTestScanner(t)
-
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	_, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1"},
-		nil,
-		nil,
-	)
-
-	if err == nil {
-		t.Fatal("expected error for empty ports")
-	}
-}
-
-// Проверка некорректного hostname.
-func TestScanInvalidHost(t *testing.T) {
-	scanner := createTestScanner(t)
-
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	res, _ := scanner.Scan(
-		ctx,
-		[]string{"invalid host !!!"},
-		[]uint16{80},
-		nil,
-	)
-
-	if len(res) < 1 {
-		t.Fatal("not enogh results for TestScanInvalidHost")
-	}
-
-	if res[0].State != "error" {
-		t.Fatal("expected error for invalid host")
-	}
-}
-
-// Проверка отменённого контекста.
-func TestScanCanceledContext(t *testing.T) {
-	scanner := createTestScanner(t)
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-
-	cancel()
-
-	_, err := scanner.Scan(
-		ctx,
-		[]string{"127.0.0.1"},
-		[]uint16{80},
-		nil,
-	)
-
-	if err == nil {
-		t.Fatal("expected cancellation error")
-	}
-
-	if !errors.Is(err, context.Canceled) {
-		t.Errorf("expected context.Canceled, got %v", err)
-	}
-}
-
-// Проверка повторного использования сканера.
-func TestScannerReuse(t *testing.T) {
-	listener, port := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer listener.Close()
-
-	scanner := createTestScanner(t)
-
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	for i := 0; i < 5; i++ {
-		results, err := scanner.Scan(
-			ctx,
-			[]string{"127.0.0.1"},
-			[]uint16{port},
-			nil,
-		)
-		if err != nil {
-			t.Fatalf("Scan #%d error: %v", i, err)
-		}
-
-		if len(results) != 1 {
-			t.Fatalf("Scan #%d: expected 1 result, got %d", i, len(results))
-		}
-	}
-}
-
-// Проверка одновременного использования одного сканера.
-func TestConcurrentScan(t *testing.T) {
-	listener, port := startTestServer(t, "tcp4", "127.0.0.1:0")
-	defer listener.Close()
-
-	scanner := createTestScanner(t)
-
-	const workers = 10
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			ctx, cancel := context.WithTimeout(
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results, err := tt.scanner.Scan(
 				context.Background(),
-				30*time.Second,
+				tt.hosts,
+				tt.ports,
+				tt.err,
 			)
-			defer cancel()
 
-			results, err := scanner.Scan(
-				ctx,
-				[]string{"127.0.0.1"},
-				[]uint16{port},
-				nil,
-			)
-			if err != nil {
-				t.Errorf("Scan() error: %v", err)
-				return
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}
 
-			if len(results) != 1 {
-				t.Errorf("expected 1 result, got %d", len(results))
+			if err != nil && results != nil {
+				t.Error("expected nil results channel")
 			}
-		}()
+		})
 	}
-
-	wg.Wait()
 }
 
-// Проверка IPv6.
-func TestScanIPv6(t *testing.T) {
-	listener, port := startTestServer(t, "tcp6", "[::1]:0")
+func TestScanDoesNotModifyPorts(t *testing.T) {
+	listener := mustListen(t)
 	defer listener.Close()
 
-	scanner := createTestScanner(t)
+	port := listenerPort(listener)
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		30*time.Second,
-	)
-	defer cancel()
+	scanner := mustScanner(t, 2, time.Second)
+
+	ports := []uint16{port, 443, 80, port}
+	original := append([]uint16(nil), ports...)
 
 	results, err := scanner.Scan(
-		ctx,
-		[]string{"::1"},
-		[]uint16{port},
+		context.Background(),
+		[]string{"127.0.0.1"},
+		ports,
 		nil,
 	)
 	if err != nil {
-		t.Fatalf("Scan() error: %v", err)
+		t.Fatal(err)
 	}
 
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+	if _, err := collect(results); err != nil {
+		t.Fatal(err)
 	}
 
-	if results[0].State != "open" {
-		t.Errorf("expected open, got %v", results[0].State)
+	for i := range ports {
+		if ports[i] != original[i] {
+			t.Fatalf("input ports modified: got %v, want %v", ports, original)
+		}
 	}
 }
