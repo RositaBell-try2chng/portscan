@@ -48,6 +48,26 @@ func FlexRange(args ...any) []uint16 {
 					return nil
 				}
 			}
+		case int:
+			if val >= 1 && val <= 65535 {
+				portsMap[uint16(val)] = struct{}{}
+			} else {
+				fmt.Printf("ERROR: Invalid port %d at the argument %d\n", val, i)
+				return nil
+			}
+		case []int:
+			if len(val) == 0 {
+				fmt.Printf("ERROR: Invalid argument %d. (empty or nil)\n", i)
+				return nil	
+			}
+			for j, port := range val {
+				if val >= 1 && val <= 65535 {
+					portsMap[uint16(port)] = struct{}{}
+				} else {
+					fmt.Printf("ERROR: Invalid port %d at the range %d, argument %d\n", val, i, j)
+					return nil
+				}
+			}
 		default:
 			fmt.Printf("ERROR: Invalid argument %d. type: %T.\n", i, arg)
 			return nil
