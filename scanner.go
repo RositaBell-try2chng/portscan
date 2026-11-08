@@ -32,7 +32,7 @@ const (
 
 type Job struct {
 	Host string
-	IP   net.IP
+	IP   net.IPAddr
 	Port uint16
 }
 

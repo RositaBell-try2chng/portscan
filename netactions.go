@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Scanner) doIt(ctx context.Context, job Job) Result {
-	address := net.JoinHostPort(job.IP.String(), strconv.Itoa(int(job.Port)))
+	address := net.JoinHostPort(job.IP.IP.String(), strconv.Itoa(int(job.Port)))
 
 	dialer := net.Dialer{
 		Timeout: s.tm,
@@ -29,7 +29,7 @@ func (s *Scanner) doIt(ctx context.Context, job Job) Result {
 	}
 
 	if err != nil {
-		result.State = wichErr(ctx, err)
+		result.State = whichErr(ctx, err)
 		result.Err = err
 		return result
 	}
@@ -39,19 +39,19 @@ func (s *Scanner) doIt(ctx context.Context, job Job) Result {
 
 }
 
-func resolveHost(host string) ([]net.IP, error) {
-	if ip := net.ParseIP(host); ip != nil {
-		return []net.IP{ip}, nil
-	}
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
+// func resolveHost(host string) ([]net.IP, error) {
+// 	if ip := net.ParseIP(host); ip != nil {
+// 		return []net.IP{ip}, nil
+// 	}
+// 	ips, err := net.LookupIP(host)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return ips, nil
-}
+// 	return ips, nil
+// }
 
-func wichErr(ctx context.Context, err error) State {
+func whichErr(ctx context.Context, err error) State {
 	var netErr net.Error
 	switch {
 	case ctx.Err() != nil:
