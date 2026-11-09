@@ -80,9 +80,6 @@ func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-c
 		return nil, ErrNotInitialized
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	//clean empty hosts and ports
 	hosts = removeEmptyStrings(hosts)
 
