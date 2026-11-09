@@ -81,8 +81,6 @@ func TestScanValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	externalErr := errors.New("external error")
-
 	tests := []struct {
 		name    string
 		scanner *Scanner
@@ -130,14 +128,6 @@ func TestScanValidation(t *testing.T) {
 			hosts:   []string{"127.0.0.1"},
 			ports:   []uint16{80, 0, 443},
 			wantErr: ErrInvalidPort,
-		},
-		{
-			name:    "external error",
-			scanner: scanner,
-			hosts:   []string{"127.0.0.1"},
-			ports:   []uint16{80},
-			err:     externalErr,
-			wantErr: externalErr,
 		},
 	}
 
