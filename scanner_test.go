@@ -180,3 +180,112 @@ func TestScanDoesNotModifyPorts(t *testing.T) {
 		}
 	}
 }
+
+ func TestScanOpenAndClosedPorts(t *testing.T) {
+	listener := mustListen(t)
+	defer listener.Close()
+
+	openPort := listenerPort(listener)
+
+	closedListener := mustListen(t)
+	closedPort := listenerPort(closedListener)
+	closedListener.Close()
+
+	scanner := mustScanner(t, 2, time.Second)
+
+	results, err := scanner.Scan(
+		context.Background(),
+		[]string{"127.0.0.1"},
+		[]uint16{openPort, closedPort},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := make(map[uint16]State)
+
+	for result := range results {
+		got[result.Port] = result.State
+	}
+
+	// Проверяем состояние открытого порта.
+	if state := got[openPort]; state != StateOpen {
+		t.Errorf("port %d: expected %q, got %q",
+			openPort, StateOpen, state)
+	}
+
+	// Проверяем состояние закрытого порта.
+	if state := got[closedPort]; state != StateClosed {
+		t.Errorf("port %d: expected %q, got %q",
+			closedPort, StateClosed, state)
+	}
+
+	// Проверяем количество результатов.
+	if len(got) != 2 {
+		t.Errorf("expected 2 results, got %d", len(got))
+	}
+}
+
+func TestScanContextCancellation(t *testing.T) {
+	listener := mustListen(t)
+	defer listener.Close()
+
+	port := listenerPort(listener)
+
+	scanner := mustScanner(t, 1, 5*time.Second)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Создаём большое количество заданий,
+	// чтобы сканирование продолжалось после первого результата.
+	hosts := make([]string, 10000)
+	for i := range hosts {
+		hosts[i] = "127.0.0.1"
+	}
+
+	results, err := scanner.Scan(
+		ctx,
+		hosts,
+		[]uint16{port},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Ждём первый результат.
+	select {
+	case result, ok := <-results:
+		if !ok {
+			t.Fatal("results channel closed before first result")
+		}
+
+		if result.State != StateOpen {
+			t.Fatalf("expected %q, got %q",
+				StateOpen, result.State)
+		}
+
+	case <-time.After(3 * time.Second):
+		t.Fatal("timeout waiting for first result")
+	}
+
+	// Отменяем контекст во время сканирования.
+	cancel()
+
+	// Проверяем, что канал результатов закрылся.
+	done := make(chan struct{})
+
+	go func() {
+		for range results {
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Все worker завершились, канал закрыт.
+
+	case <-time.After(3 * time.Second):
+		t.Fatal("results channel was not closed after context cancellation")
+	}
+}
