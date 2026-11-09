@@ -4,9 +4,9 @@
     Создаете сканер с помощью конструктора NewScanner(concurrency uint16, timeout time.Duration) (*Scanner, error)
     Проверяете на ошибку.
     Создаете объект context.Context
-    Запускаете (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16, err error) (<-chan Result, error) (так как предполашается использование Range и FlexRange, которые возвращают []uint, error, последним аргументом функция Scan принимает error. В случае передачи портов не черезе Tange/FlexRange необходимо передать nil последним аргументом.)
+    Запускаете (s *Scanner)Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error)
     Хосты - слайс строк.
-    Порты можно задать вручную или использовать Range(принимает 2 uint16) для простого диапозона и FlexRange(принимает любой набор в любой последовательности из uint16 и []uint16).
+    Порты можно задать вручную или предварительно использовать Range(принимает 2 uint16) для создания простого диапозона и FlexRange(принимает любой набор в любой последовательности из uint16 и []uint16) для создания диапозона из произвольного набора uint16 и []uint16.
 
     Простой пример:
     func main() {
@@ -41,7 +41,14 @@
             3306,
         }
         
-        results, err := sc.Scan(ctx, hosts, portscan.FlexRange(ports, []uint16{21, 2121, 21212}))
+        portsRange, err := portscan.FlexRange(ports, []uint16{21, 2121, 21212})
+
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        results, err := sc.Scan(ctx, hosts, portsRange)
         if err != nil {
             fmt.Println(err)
         }

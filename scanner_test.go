@@ -147,7 +147,6 @@ func TestScanValidation(t *testing.T) {
 				context.Background(),
 				tt.hosts,
 				tt.ports,
-				tt.err,
 			)
 
 			if !errors.Is(err, tt.wantErr) {
@@ -176,7 +175,6 @@ func TestScanDoesNotModifyPorts(t *testing.T) {
 		context.Background(),
 		[]string{"127.0.0.1"},
 		ports,
-		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

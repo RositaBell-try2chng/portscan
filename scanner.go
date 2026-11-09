@@ -75,7 +75,7 @@ func removeEmptyStrings(items []string) []string {
 	return res
 }
 
-func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16, err error) (<-chan Result, error) {
+func (s *Scanner) Scan(ctx context.Context, hosts []string, ports []uint16) (<-chan Result, error) {
 	if s == nil || s.cr == 0 {
 		return nil, ErrNotInitialized
 	}
